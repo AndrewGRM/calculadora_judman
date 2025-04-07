@@ -11,28 +11,29 @@ console.log(dataFinal);
 
 const url = `https://api.bcb.gov.br/dados/serie/bcdata.sgs.4390/dados?formato=json&dataInicial=${dataInicial}&dataFinal=${dataFinal}`;
 
-fetch(url)
-    .then(response => {
+async function obterSomaSelic(url) {
+    try {
+        const response = await fetch(url);
         if (!response.ok) {
             throw new Error(`Erro na requisição: ${response.status}`);
         }
-        return response.json();
-    })
-    .then(data => {
-        // Somar os valores da taxa SELIC
-        const somaSelic = data.reduce((soma, item) => {const valor = parseFloat(item.valor.replace(',', '.'));
+        const data = await response.json();
+
+        const somaSelic = data.reduce((soma, item) => {
+            const valor = parseFloat(item.valor.replace(',', '.'));
             return soma + valor;
         }, 0);
 
-        console.log(`Soma dos valores da SELIC: ${somaSelic}%`);
         return somaSelic;
 
-    })
-    .catch(error => {
+    } catch (error) {
         console.error('Erro ao buscar dados:', error);
-    });
+        return null;
+    }
+}
 
-function calcular_valor_cedivel(valor_bruto, somaSelic, percentual_honorario, rra=0.03) {
+async function calcular_valor_cedivel(valor_bruto, percentual_honorario, rra=0.03) {
+    const somaSelic = await obterSomaSelic(url);
     // Faz o calculo da Selic e soma com o valor bruto
     var selic_valor = valor_bruto * (somaSelic / 100)
     var valor_liquido = valor_bruto + selic_valor
@@ -45,4 +46,6 @@ function calcular_valor_cedivel(valor_bruto, somaSelic, percentual_honorario, rr
     return valor_recebido
 }
 
-console.log(`Valor cedivel ${calcular_valor_cedivel(200000, 1.92, 30)}`)
+calcular_valor_cedivel(200000, 30).then(valor => {
+    console.log(`Valor cedível: R$ ${valor.toFixed(2)}`);
+});
